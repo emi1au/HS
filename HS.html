@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS - Hungry Shark</title>
+    <style>
+        :root {
+            --bg-app: #0f172a;       
+            --bg-card: #162032;      
+            --bg-modal: #0b1120;
+            --bg-input: #1f2937;     
+            --bg-input-hover: #374151;
+            
+            --primary: #2563eb;      
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --success-hover: #059669;
+            
+            --text-main: #f8fafc;    
+            --text-muted: #94a3b8;   
+            --border: #1e293b;       
+            
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; }
+
+        /* HEADER */
+        header { background: #0b1120; border-bottom: 1px solid var(--border); padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .location-info { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        
+        /* SIDEBAR */
+        .categories { width: 200px; background: #0b1120; overflow-y: auto; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .nav-section-title { padding: 15px; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: bold; }
+        .cat-btn { 
+            padding: 15px; border: none; background: none; text-align: left; cursor: pointer; 
+            border-bottom: 1px solid var(--border); transition: 0.2s; font-weight: 600; width: 100%;
+            color: var(--text-muted);
+        }
+        .cat-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .cat-btn.active { background: rgba(37, 99, 235, 0.1); border-left: 4px solid var(--primary); color: var(--primary); }
+        .history-btn { color: #facc15; }
+
+        /* CONTENT AREA */
+        .content-area { flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-app); }
+        
+        /* DASHBOARD GRID */
+        .menu-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 20px; 
+            align-content: start; 
+        }
+
+        .dashboard-card { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 15px; 
+            display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            border: 1px solid #2d3b55;
+            height: fit-content;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .card-header { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 5px; padding-right: 30px; }
+        .card-title { font-size: 1.1rem; font-weight: 800; color: white; }
+        .card-base-price { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* Icon */
+        .card-customize-icon {
+            position: absolute; top: 15px; right: 15px; color: var(--text-muted); cursor: pointer;
+            width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; transition: 0.2s;
+        }
+        .card-customize-icon:hover { color: white; background: rgba(255,255,255,0.1); }
+        .card-customize-icon svg { width: 18px; height: 18px; fill: currentColor; }
+
+        /* Modifiers */
+        .card-mod-group { margin-bottom: 10px; animation: fadeIn 0.3s ease; }
+        .card-mod-title { font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+        .card-options-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        
+        .card-opt-btn {
+            background: var(--bg-input); border: 1px solid transparent; color: var(--text-muted);
+            padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; flex: 1; text-align: center; min-width: 70px; transition: 0.1s;
+        }
+        .card-opt-btn:hover { background: var(--bg-input-hover); }
+        .card-opt-btn.selected { background: var(--primary); color: white; border-color: #3b82f6; box-shadow: 0 0 8px rgba(37,99,235,0.4); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Actions */
+        .card-actions { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border); }
+        .btn-add-card { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 1rem; display: flex; justify-content: space-between; cursor: pointer; }
+        .btn-add-card:hover { background: var(--primary-hover); }
+
+        /* CART SIDEBAR */
+        .cart { width: 340px; background: #0b1120; border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+        
+        /* ORDER TYPE SWITCHER */
+        .order-type-switch { display: flex; background: #162032; padding: 5px; margin: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .type-btn { flex: 1; border: none; background: transparent; color: #94a3b8; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .type-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        /* DELIVERY FORM */
+        .delivery-form { padding: 0 15px 15px 15px; border-bottom: 1px solid var(--border); display: none; }
+        .delivery-form.visible { display: block; animation: fadeIn 0.3s ease; }
+        .df-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .df-input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; font-size: 0.9rem; }
+        .df-input:focus { border-color: var(--primary); outline: none; }
+        .df-btn-find { background: #334155; color: white; border: none; padding: 0 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; min-width: 60px; }
+        .df-btn-find:hover { background: #475569; }
+        
+        /* Distance Alert */
+        .df-msg { font-size: 0.8rem; margin-top: 5px; padding: 5px; border-radius: 4px; display: none; }
+        .df-msg.error { background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid #ef4444; display: block; }
+        .df-msg.success { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid #10b981; display: block; }
+
+        .cart-header { padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; color: white; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; background: #0f172a; }
+        .clear-cart { color: #ef4444; font-size: 0.8rem; cursor: pointer; text-transform: none; }
+        
+        .cart-items { flex: 1; overflow-y: auto; padding: 10px; }
+        .cart-group { margin-bottom: 15px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: rgba(0,0,0,0.1); }
+        .cart-group-header { background: #1e293b; padding: 8px 10px; font-size: 0.75rem; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+        .cart-item { background: var(--bg-card); border-radius: 6px; padding: 10px; margin-bottom: 8px; border: 1px solid var(--border); }
+        .cart-row-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .cart-name { font-weight: bold; color: white; font-size: 0.95rem; }
+        .cart-price { font-weight: bold; color: white; }
+        .cart-mods { font-size: 0.8rem; color: #94a3b8; line-height: 1.3; margin-bottom: 8px; }
+        .cart-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+        .qty-btn { width: 28px; height: 28px; background: #334155; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .qty-btn:hover { background: #475569; }
+        .qty-val { font-weight: bold; color: white; min-width: 20px; text-align: center; }
+        .cart-footer { padding: 20px; background: #0f172a; border-top: 1px solid var(--border); }
+        .total-row { display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 800; margin-bottom: 10px; color: white; }
+        .checkout-btn { width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .checkout-btn:hover { background: #059669; }
+
+        /* HISTORY TABLE STYLES */
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .history-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 8px; overflow: hidden; }
+        .history-table th { background: #1e293b; text-align: left; padding: 12px; color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; }
+        .history-table td { padding: 12px; border-bottom: 1px solid #1e293b; color: #f8fafc; font-size: 0.9rem; }
+        .btn-reprint { background: #3b82f6; border: none; color: white; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-reprint:hover { background: #2563eb; }
+        .btn-close-day { background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .btn-close-day:hover { background: #b91c1c; }
+
+        /* ========================================= */
+        /* FULL CUSTOMIZATION MODAL                  */
+        /* ========================================= */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .full-modal { width: 900px; max-width: 95vw; height: 85vh; background: var(--bg-modal); border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .fm-header { padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #0f172a; }
+        .fm-title h2 { margin: 0; font-size: 1.5rem; color: white; }
+        .fm-meta { display: flex; gap: 10px; align-items: center; margin-top: 5px; }
+        .fm-tag { background: #1e293b; color: #94a3b8; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .fm-price-tag { color: var(--success); font-weight: bold; font-size: 0.9rem; }
+        .fm-close { cursor: pointer; color: var(--text-muted); font-size: 1.5rem; transition: 0.2s; }
+        .fm-close:hover { color: white; }
+        .fm-tabs-container { padding: 15px 30px; background: #0f172a; border-bottom: 1px solid var(--border); display: flex; gap: 10px; overflow-x: auto; }
+        .fm-tab { padding: 10px 20px; border-radius: 8px; background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border); cursor: pointer; font-weight: 600; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s; }
+        .fm-tab:hover { background: var(--bg-input-hover); color: white; }
+        .fm-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .fm-body { flex: 1; overflow-y: auto; padding: 30px; background: #0b1120; }
+        .fm-section-title { font-size: 1.2rem; font-weight: 800; color: white; margin-bottom: 5px; }
+        .fm-section-subtitle { font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px; }
+        .fm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .fm-option-card { background: var(--bg-card); border: 2px solid var(--border); border-radius: 8px; padding: 20px; cursor: pointer; transition: all 0.2s; position: relative; display: flex; justify-content: space-between; align-items: center; min-height: 80px; }
+        .fm-option-card:hover { border-color: #475569; }
+        .fm-option-card.selected { border-color: var(--primary); background: rgba(37, 99, 235, 0.1); }
+        .fm-opt-info { display: flex; flex-direction: column; gap: 4px; }
+        .fm-opt-name { font-weight: 700; color: white; font-size: 1rem; }
+        .fm-opt-price { font-size: 0.85rem; color: #94a3b8; }
+        .fm-check-circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; }
+        .fm-option-card.selected .fm-check-circle { border-color: var(--primary); background: var(--primary); color: white; }
+        .fm-check-icon { font-size: 14px; display: none; }
+        .fm-option-card.selected .fm-check-icon { display: block; }
+        .fm-footer { padding: 20px 30px; background: #1e293b; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .fm-qty-control { display: flex; align-items: center; gap: 10px; background: #0f172a; padding: 5px; border-radius: 8px; }
+        .fm-qty-btn { width: 40px; height: 40px; background: #334155; border: none; color: white; border-radius: 6px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .fm-qty-btn:hover { background: #475569; }
+        .fm-qty-display { font-size: 1.2rem; font-weight: 800; min-width: 30px; text-align: center; }
+        .fm-add-btn { background: var(--success); color: white; border: none; padding: 15px 40px; border-radius: 8px; font-size: 1.1rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 15px; min-width: 300px; justify-content: center; transition: 0.2s; }
+        .fm-add-btn:hover { background: var(--success-hover); transform: translateY(-2px); }
+
+        /* ========================================= */
+        /* RECEIPT PREVIEW MODAL                     */
+        /* ========================================= */
+        .rp-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .rp-modal {
+            width: 500px; max-width: 90vw; height: 85vh;
+            background: #0f172a; border-radius: 12px; border: 1px solid var(--border);
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+        }
+        .rp-header {
+            padding: 15px 20px; background: #162032; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .rp-title { font-size: 1.1rem; font-weight: bold; color: white; display: flex; align-items: center; gap: 10px; }
+        
+        .rp-toggles { display: flex; background: #0f172a; padding: 4px; border-radius: 6px; }
+        .rp-toggle-btn {
+            background: transparent; border: none; color: #94a3b8; padding: 6px 12px;
+            font-size: 0.85rem; font-weight: bold; cursor: pointer; border-radius: 4px;
+        }
+        .rp-toggle-btn.active { background: var(--primary); color: white; }
+        
+        .rp-close { cursor: pointer; color: #94a3b8; font-size: 1.2rem; }
+        .rp-close:hover { color: white; }
+
+        .rp-body {
+            flex: 1; background: #e2e8f0; padding: 40px; overflow-y: auto;
+            display: flex; justify-content: center; align-items: flex-start;
+        }
+        
+        .rp-paper {
+            background: white; color: black; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+            padding: 15px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 600;
+            transition: width 0.3s ease;
+            width: 80mm; /* Default */
+            min-height: 300px;
+        }
+        .rp-paper.width-58 { width: 58mm; font-size: 11px; }
+        .rp-paper.width-80 { width: 80mm; font-size: 13px; }
+
+        .rp-footer {
+            padding: 15px 20px; background: white; border-top: 1px solid #e2e8f0;
+            display: flex; justify-content: space-between; gap: 10px;
+        }
+        .rp-btn-secondary {
+            background: white; border: 1px solid #cbd5e1; color: #334155;
+            padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;
+        }
+        .rp-btn-secondary:hover { background: #f1f5f9; }
+        .rp-btn-primary {
+            background: var(--primary); border: none; color: white;
+            padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1;
+        }
+        .rp-btn-primary:hover { background: var(--primary-hover); }
+
+        /* Receipt Visuals Inside Paper */
+        .r-header { text-align: center; margin-bottom: 10px; text-transform: uppercase; }
+        .r-brand { font-size: 1.2em; font-weight: 800; margin-bottom: 2px; }
+        .r-loc { font-size: 0.9em; font-weight: bold; margin-bottom: 10px; }
+        .r-dashed-line { border-top: 1px dashed #000; margin: 8px 0; }
+        .r-solid-line { border-top: 2px solid #000; margin: 10px 0; }
+        .r-ord-label { text-align: center; font-size: 0.9em; font-weight: bold; color: #444; margin-top: 5px; }
+        .r-ord-num { text-align: center; font-size: 3em; font-weight: 900; line-height: 1; margin: 5px 0 10px 0; }
+        .r-type { text-align: center; font-size: 1.1em; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; border: 2px solid #000; padding: 5px; }
+        .r-customer { font-size: 0.9em; margin-bottom: 5px; text-align: center; line-height: 1.4; }
+        .r-cat-header { font-size: 1em; font-weight: 800; text-transform: uppercase; margin-top: 15px; border-bottom: 2px solid #000; width: 100%; }
+        .r-item-row { display: flex; justify-content: space-between; margin-top: 8px; font-weight: 700; }
+        .r-item-name { text-align: left; padding-right: 5px; line-height: 1.2; }
+        .r-item-price { text-align: right; white-space: nowrap; }
+        .r-mods { font-size: 0.85em; font-weight: 500; margin-top: 2px; line-height: 1.3; color: #333; }
+        .r-total-section { margin-top: 15px; }
+        .r-total-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 1.4em; font-weight: 900; }
+        .r-payment-row { display: flex; justify-content: space-between; font-size: 0.9em; margin-top: 5px; }
+        .r-footer { text-align: center; margin-top: 20px; font-size: 0.8em; color: #444; }
+        .r-thankyou { text-align: center; font-size: 1em; font-weight: 800; margin-top: 5px; }
+
+        /* PRINT MEDIA QUERY */
+        @media print {
+            body > * { display: none !important; }
+            .rp-overlay { display: block !important; position: absolute; left: 0; top: 0; width: 100%; height: auto; background: white; z-index: 9999; }
+            .rp-modal { border: none; box-shadow: none; width: 100%; max-width: none; height: auto; display: block; }
+            .rp-header, .rp-footer, .rp-close { display: none !important; }
+            .rp-body { background: white; padding: 0; overflow: visible; display: block; }
+            .rp-paper { box-shadow: none; margin: 0; padding: 0; }
+            .rp-paper.width-58 { width: 58mm !important; max-width: 58mm !important; }
+            .rp-paper.width-80 { width: 80mm !important; max-width: 80mm !important; }
+            @page { margin: 0; size: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div><h2>Hungry Shark POS</h2></div>
+    <div class="location-info">Barry Island</div>
+</header>
+
+<div class="main-container">
+    <div class="categories">
+        <div class="nav-section-title">Menu</div>
+        <div id="categoryList"></div>
+        <div class="nav-section-title" style="margin-top:auto">System</div>
+        <button class="cat-btn history-btn" id="btnHistory" onclick="showHistory()">Order History & Close</button>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div class="content-area" id="mainContent">
+        <div style="padding:20px; color:#94a3b8;">Loading menu...</div>
+    </div>
+
+    <div class="cart">
+        <!-- ORDER TYPE TOGGLE -->
+        <div class="order-type-switch">
+            <button class="type-btn active" id="btnTakeaway" onclick="setOrderType('TAKEAWAY')">Takeaway</button>
+            <button class="type-btn" id="btnDelivery" onclick="setOrderType('DELIVERY')">Delivery</button>
+        </div>
+
+        <!-- DELIVERY FORM -->
+        <div class="delivery-form" id="deliveryForm">
+            <div class="df-row">
+                <input type="text" class="df-input" id="dfPhone" placeholder="Phone Number">
+            </div>
+            <div class="df-row">
+                <input type="text" class="df-input" id="dfPostcode" placeholder="Postcode (e.g. CF62 5TJ)">
+                <button class="df-btn-find" onclick="lookupPostcode()">Find</button>
+            </div>
+            <div class="df-row">
+                <input type="text" class="df-input" id="dfDoor" placeholder="Door No." style="flex:0.4">
+                <input type="text" class="df-input" id="dfAddress" placeholder="Address" style="flex:1">
+            </div>
+            <div id="dfMessage" class="df-msg"></div>
+        </div>
+
+        <div class="cart-header">
+            <span>Current Order</span>
+            <span class="clear-cart" onclick="clearCart()">Clear All</span>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-footer">
+            <div class="total-row"><span>Total</span><span id="cartTotal">£0.00</span></div>
+            <button class="checkout-btn" onclick="processCheckout()">Print Receipt</button>
+        </div>
+    </div>
+</div>
+
+<!-- FULL CUSTOMIZATION MODAL -->
+<div class="modal-overlay" id="fullModal">
+    <div class="full-modal">
+        <div class="fm-header">
+            <div class="fm-title">
+                <h2 id="fmTitle">Item Name</h2>
+                <div class="fm-meta">
+                    <span class="fm-tag" id="fmCategory">CATEGORY</span>
+                    <span class="fm-price-tag" id="fmBasePrice">£0.00</span>
+                </div>
+            </div>
+            <div class="fm-close" onclick="closeFullModal()">✕</div>
+        </div>
+
+        <div class="fm-tabs-container" id="fmTabs"></div>
+        <div class="fm-body" id="fmBody"></div>
+
+        <div class="fm-footer">
+            <div class="fm-qty-control">
+                <button class="fm-qty-btn" onclick="updateFmQty(-1)">-</button>
+                <div class="fm-qty-display" id="fmQty">1</div>
+                <button class="fm-qty-btn" onclick="updateFmQty(1)">+</button>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; margin-right:20px;">
+                <div style="font-size:0.8rem; color:#94a3b8; font-weight:bold;">TOTAL PRICE</div>
+                <div style="font-size:1.5rem; font-weight:800; color:white;" id="fmTotalPrice">£0.00</div>
+            </div>
+            <button class="fm-add-btn" onclick="addFmToOrder()">Add to Order ➔</button>
+        </div>
+    </div>
+</div>
+
+<!-- RECEIPT PREVIEW MODAL -->
+<div class="rp-overlay" id="receiptPreviewModal">
+    <div class="rp-modal">
+        <div class="rp-header">
+            <div class="rp-title">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h3v4h14v-4h3v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 12v2H8v-4h8v2zm2-2v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/></svg>
+                Receipt Preview
+            </div>
+            <div class="rp-toggles">
+                <button class="rp-toggle-btn" id="btn58" onclick="setReceiptWidth('58mm')">57mm</button>
+                <button class="rp-toggle-btn active" id="btn80" onclick="setReceiptWidth('80mm')">80mm</button>
+            </div>
+            <div class="rp-close" onclick="closeReceiptPreview()">✕</div>
+        </div>
+        <div class="rp-body">
+            <div class="rp-paper width-80" id="rpPaper"></div>
+        </div>
+        <div class="rp-footer">
+            <button class="rp-btn-secondary" onclick="printReceiptNow()">Single Print</button>
+            <button class="rp-btn-secondary" onclick="closeReceiptPreview()">Done</button>
+            <button class="rp-btn-primary" onclick="printReceiptNow()">Print (x1)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    try { init(); } catch (e) { console.error(e); localStorage.clear(); window.location.reload(); }
+});
+
+const CURRENCY = '£';
+const SHOP_LAT = 51.391629; 
+const SHOP_LNG = -3.273656;
+const MAX_DELIVERY_MILES = 3;
+
+// --- DATA DEFINITIONS ---
+const CategoryOrder = ['Chips', 'Fish', 'Pies', 'Sausages', 'Kebabs', 'Burgers', 'Wraps', 'Sides', 'Kids Meals', 'Drinks'];
+const Category = { 
+    CHIPS: 'Chips', 
+    FISH: 'Fish', 
+    PIES: 'Pies', 
+    SAUSAGES: 'Sausages', 
+    KEBABS: 'Kebabs', 
+    BURGERS: 'Burgers', 
+    WRAPS: 'Wraps', 
+    SIDES: 'Sides', 
+    KIDS_MEALS: 'Kids Meals', 
+    DRINKS: 'Drinks' 
+};
+
+// ... MODIFIER GROUPS (FULL LIST) ...
+const MODIFIER_GROUPS = [
+    { id: 'size_fish', name: "Fish Size", allowMultiple: false, options: [ { name: "Medium", price: 0, triggersGroupId: 'fish_chip_opt_med' }, { name: "Large", price: 1.50, triggersGroupId: 'fish_chip_opt_lrg' } ] },
+    { id: 'cod_bites_size', name: "How Many?", allowMultiple: false, options: [ { name: "1 Pc", price: 0 }, { name: "4 Pcs", price: 4.20 } ] },
+    { id: 'size_kebab', name: "Kebab Size", allowMultiple: false, options: [ { name: "Medium", price: 0 }, { name: "Large", price: 2.00 } ] },
+    { id: 'size_chips', name: "Portion Size", allowMultiple: false, options: [ { name: "Small", price: 0 }, { name: "Medium", price: 0.80 }, { name: "Large", price: 1.50 } ] },
+    { id: 'chip_combo_selection', name: "Select Type", allowMultiple: false, options: [ { name: "Cheese Chips", price: 4.70, triggersGroupId: 'size_combo_ml' }, { name: "Chips & Curry", price: 4.50, triggersGroupIds: ['size_combo_ml', 'specialty_curry_type'] }, { name: "Chips & Gravy", price: 4.50, triggersGroupId: 'size_combo_ml' }, { name: "Cheese & Curry", price: 5.70, triggersGroupIds: ['size_combo_ml', 'specialty_curry_type'] }, { name: "Cheese & Gravy", price: 5.70, triggersGroupId: 'size_combo_ml' }, { name: "Cheese & Beans (Lrg)", price: 6.70 }, { name: "Chip Butty (Lrg)", price: 4.20 } ] },
+    { id: 'specialty_curry_type', name: "Curry Option", allowMultiple: false, options: [ { name: "Mild Curry", price: 0 }, { name: "Irish Curry", price: 0 }, { name: "Fruit Curry", price: 0 } ] },
+    { id: 'size_combo_ml', name: "Size", allowMultiple: false, options: [ { name: "Medium", price: 0 }, { name: "Large", price: 1.00 } ] },
+    { id: 'size_burger', name: "Burger Size", allowMultiple: false, options: [ { name: "1/4 lb", price: 0 }, { name: "1/2 lb", price: 1.50 } ] },
+    { id: 'size_side', name: "Pot Size", allowMultiple: false, options: [ { name: "Small", price: 0 }, { name: "Large", price: 1.00 } ] },
+    { id: 'size_sausage_plain', name: "Sausage Size", allowMultiple: false, options: [ { name: "Small", price: 0, triggersGroupId: 'opt_chips_sausage_small' }, { name: "Large", price: 0.70, triggersGroupId: 'opt_chips_sausage_large' } ] },
+    { id: 'size_sausage_battered', name: "Sausage Size", allowMultiple: false, options: [ { name: "Small", price: 0, triggersGroupId: 'opt_chips_battered_small' }, { name: "Large", price: 0.80, triggersGroupId: 'opt_chips_battered_large' } ] },
+    { id: 'fish_chip_opt_med', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.00, triggersGroupId: 'chips_sauce' } ] },
+    { id: 'fish_chip_opt_lrg', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.50, triggersGroupId: 'chips_sauce' } ] },
+    { id: 'chips_cod_bites', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.00, triggersGroupIds: ['chips_sauce', 'condiments'] } ] },
+    { id: 'chips_fish_cake', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.20, triggersGroupIds: ['chips_sauce', 'condiments'] } ] },
+    { id: 'pie_chips_opt', name: "Add Chips?", allowMultiple: false, options: [ { name: "Pie Only", price: 0 }, { name: "With Chips", price: 3.00, triggersGroupIds: ['chips_sauce', 'condiments'] } ] },
+    { id: 'opt_chips_sausage_small', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.40, triggersGroupId: 'chips_sauce' } ] },
+    { id: 'opt_chips_sausage_large', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.40, triggersGroupId: 'chips_sauce' } ] },
+    { id: 'opt_chips_battered_small', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.30, triggersGroupId: 'chips_sauce' } ] },
+    { id: 'opt_chips_battered_large', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.40, triggersGroupId: 'chips_sauce' } ] },
+    { id: 'opt_chips_saveloy', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Add Chips", price: 3.40, triggersGroupId: 'chips_sauce' } ] },
+    { id: 'kebab_base', name: "Served With", allowMultiple: true, maxSelection: 2, options: [ { name: "Pitta Bread", price: 0 }, { name: "On Chips", price: 0, triggersGroupIds: ['condiments', 'chips_sauce'] }, { name: "Extra Pitta", price: 1.20 }, { name: "Rice", price: 1.50 } ] },
+    { id: 'salad', name: "Salad", allowMultiple: true, options: [ { name: "All Salad", price: 0 }, { name: "Lettuce", price: 0 }, { name: "Onion", price: 0 }, { name: "Tomato", price: 0 }, { name: "Cucumber", price: 0 }, { name: "Jalapeno", price: 0 }, { name: "Slice Cheese", price: 0 }, { name: "Mozz Cheese", price: 1.50 }, { name: "No Salad", price: 0 } ] },
+    { id: 'sauce', name: "Sauce", allowMultiple: true, options: [ { name: "Chilli Sauce", price: 0 }, { name: "Garlic Mayo", price: 0 }, { name: "Mayo", price: 0 }, { name: "Ketchup", price: 0 }, { name: "Mint Sauce", price: 0 }, { name: "BBQ Sauce", price: 0 }, { name: "Burger Sauce", price: 0 }, { name: "Relish", price: 0 }, { name: "No Sauce", price: 0 }, { name: "Sauce Separate", price: 0.50 } ] },
+    { id: 'condiments', name: "Condiments", allowMultiple: true, options: [ { name: "Salt & Vinegar", price: 0 }, { name: "Salt", price: 0 }, { name: "Vinegar", price: 0 }, { name: "Plain", price: 0 } ] },
+    { id: 'meal_upgrade', name: "Make it a Meal?", allowMultiple: false, options: [ { name: "Burger Only", price: 0 }, { name: "Add Chips & Drink", price: 3.20, triggersGroupIds: ['meal_drinks', 'condiments', 'chips_sauce'] } ] },
+    { id: 'wrap_meal_upgrade', name: "Make it a Meal?", allowMultiple: false, options: [ { name: "Wrap Only", price: 0 }, { name: "Add Chips & Drink", price: 3.20, triggersGroupIds: ['meal_drinks', 'condiments', 'chips_sauce'] } ] },
+    { id: 'meal_drinks', name: "Meal Drink Selection", allowMultiple: false, options: [ { name: "Coke", price: 0 }, { name: "Zero Coke", price: 0 }, { name: "Cherry", price: 0 }, { name: "Pepsi Max", price: 0 }, { name: "Dr Pepper", price: 0 }, { name: "7up", price: 0 }, { name: "Fanta Lemon", price: 0 }, { name: "Apple Tango", price: 0 }, { name: "Orange Tango", price: 0 }, { name: "Mango", price: 0 }, { name: "Rio", price: 0 }, { name: "Water", price: 0 }, { name: "Orange Juice", price: 0 }, { name: "Apple Juice", price: 0 }, { name: "Ribena", price: 0 }, { name: "Fruit Shoot Blackcurrant", price: 0 }, { name: "Fruit Shoot Orange", price: 0 } ] },
+    { id: 'chips_sauce', name: "Sauce & Toppings", allowMultiple: true, options: [ { name: "Mild Curry", price: 1.40 }, { name: "Irish Curry", price: 1.40 }, { name: "Fruit Curry", price: 1.20 }, { name: "Gravy", price: 1.20 }, { name: "Mushy Peas", price: 2.20 }, { name: "Beans", price: 2.20 }, { name: "Cheese", price: 1.50 } ] },
+    { id: 'chips_addons', name: "Add Extras", allowMultiple: true, options: [ { name: "Plain Sausage (Small)", price: 1.50 }, { name: "Plain Sausage (Large)", price: 2.20 }, { name: "Battered Sausage (Small)", price: 1.70 }, { name: "Battered Sausage (Large)", price: 2.50 }, { name: "Saveloy", price: 2.50 }, { name: "Fish Cake", price: 2.00 } ] },
+    { id: 'kebab_burger_meat', name: "Meat Choice", allowMultiple: false, options: [ { name: "Doner Meat", price: 0 }, { name: "Chicken Meat", price: 0 }, { name: "Mix Meat", price: 0 } ] },
+    { id: 'sauce_pot_type', name: "Select Side", allowMultiple: false, options: [ { name: "Mild Curry", price: 1.40, triggersGroupId: 'sauce_pot_size_upgrade' }, { name: "Irish Curry", price: 1.40, triggersGroupId: 'sauce_pot_size_upgrade' }, { name: "Fruit Curry", price: 1.40, triggersGroupId: 'sauce_pot_size_upgrade' }, { name: "Gravy", price: 1.40, triggersGroupId: 'sauce_pot_size_upgrade' }, { name: "Mushy Peas", price: 2.20 }, { name: "Beans", price: 2.20 } ] },
+    { id: 'sauce_pot_size_upgrade', name: "Pot Size", allowMultiple: false, options: [ { name: "Small", price: 0 }, { name: "Large", price: 0.80 } ] },
+    { id: 'side_add_chips', name: "Add Chips?", allowMultiple: false, options: [ { name: "No Chips", price: 0 }, { name: "Small Chips", price: 2.70, triggersGroupIds: ['chips_sauce', 'condiments'] }, { name: "Medium Chips", price: 3.50, triggersGroupIds: ['chips_sauce', 'condiments'] }, { name: "Large Chips", price: 4.20, triggersGroupIds: ['chips_sauce', 'condiments'] } ] },
+    { id: 'chicken_breast_chips', name: "Add Chips?", allowMultiple: false, options: [ { name: "Just Chicken", price: 0 }, { name: "With Chips", price: 2.90, triggersGroupIds: ['chips_sauce', 'condiments'] } ] },
+    { id: 'chicken_curry_style', name: "Serve With", allowMultiple: false, options: [ { name: "Rice", price: 0 }, { name: "Chips", price: 0, triggersGroupId: 'condiments' }, { name: "Chips & Rice", price: 2.00, triggersGroupId: 'condiments' } ] },
+    { id: 'kids_drink_select', name: "Select Drink", allowMultiple: false, options: [ { name: "Coke", price: 0 }, { name: "Zero Coke", price: 0 }, { name: "Fanta", price: 0 }, { name: "7up", price: 0 }, { name: "Dr Pepper", price: 0 }, { name: "Fruit Shoot Orange", price: 0 }, { name: "Fruit Shoot Blackcurrant", price: 0 }, { name: "Water", price: 0 } ] },
+    { id: 'kids_sausage_type', name: "Sausage Type", allowMultiple: false, options: [ { name: "Plain Sausage", price: 0 }, { name: "Battered Sausage", price: 0 } ] },
+    { id: 'kids_sauce_choice', name: "Select Sauce", allowMultiple: false, options: [ { name: "Mild Curry", price: 0 }, { name: "Irish Curry", price: 0 }, { name: "Fruit Curry", price: 0 }, { name: "Gravy", price: 0 }, { name: "Beans", price: 0 }, { name: "Mushy Peas", price: 0 } ] },
+    { id: 'drink_can_opt', name: "Select Flavour", allowMultiple: false, options: [ { name: "Coke", price: 0 }, { name: "Zero Coke", price: 0 }, { name: "Cherry", price: 0 }, { name: "Pepsi Max", price: 0 }, { name: "Dr Pepper", price: 0 }, { name: "7up", price: 0 }, { name: "Fanta Lemon", price: 0 }, { name: "Apple Tango", price: 0 }, { name: "Orange Tango", price: 0 }, { name: "Mango", price: 0 }, { name: "Rio", price: 0 } ] },
+    { id: 'drink_bottle_opt', name: "Select Flavour", allowMultiple: false, options: [ { name: "Coke", price: 0 }, { name: "Diet Coke", price: 0 }, { name: "Orange Fanta", price: 0 }, { name: "Lemon", price: 0 }, { name: "Fruit Twist", price: 0 } ] },
+    { id: 'drink_juice_opt', name: "Select Flavour", allowMultiple: false, options: [ { name: "Orange", price: 0 }, { name: "Apple", price: 0 }, { name: "Ribena", price: 0 } ] },
+    { id: 'drink_fruitshoot_opt', name: "Select Flavour", allowMultiple: false, options: [ { name: "Blackcurrant", price: 0 }, { name: "Orange", price: 0 } ] }
+];
+
+// ... MENU ITEMS (FULL LIST) ...
+const MENU_ITEMS = [
+    { id: '12', name: 'Chips', price: 2.70, category: Category.CHIPS, modifierGroupIds: ['size_chips', 'condiments', 'chips_sauce', 'chips_addons'] },
+    { id: 'chip_specialties', name: 'Specialty Chips', price: 0, category: Category.CHIPS, modifierGroupIds: ['chip_combo_selection', 'condiments', 'chips_addons'] },
+    { id: 'cod_fillet', name: 'Cod', price: 7.00, category: Category.FISH, modifierGroupIds: ['size_fish', 'condiments'] },
+    { id: 'cod_bites_main', name: 'Cod Bites', price: 1.80, category: Category.FISH, modifierGroupIds: ['cod_bites_size', 'chips_cod_bites'] },
+    { id: 'fish_cake', name: 'Fish Cake', price: 2.00, category: Category.FISH, modifierGroupIds: ['chips_fish_cake'] },
+    { id: 'pie_1', name: 'Steak & Kidney Pie', price: 4.00, category: Category.PIES, modifierGroupIds: ['pie_chips_opt'] },
+    { id: 'pie_2', name: 'Chicken & Mushroom Pie', price: 4.00, category: Category.PIES, modifierGroupIds: ['pie_chips_opt'] },
+    { id: 'pie_3', name: 'Minced Beef & Onion Pie', price: 4.00, category: Category.PIES, modifierGroupIds: ['pie_chips_opt'] },
+    { id: 'saus_plain', name: 'Plain Sausage', price: 1.50, category: Category.SAUSAGES, modifierGroupIds: ['size_sausage_plain', 'condiments'] },
+    { id: 'saus_battered', name: 'Battered Sausage', price: 1.70, category: Category.SAUSAGES, modifierGroupIds: ['size_sausage_battered', 'condiments'] },
+    { id: 'saus_saveloy', name: 'Saveloy', price: 2.50, category: Category.SAUSAGES, modifierGroupIds: ['opt_chips_saveloy', 'condiments'] },
+    { id: '4', name: 'Doner Meat', price: 9.00, category: Category.KEBABS, modifierGroupIds: ['size_kebab', 'kebab_base', 'salad', 'sauce'] },
+    { id: '5', name: 'Chicken Kebab', price: 9.00, category: Category.KEBABS, modifierGroupIds: ['size_kebab', 'kebab_base', 'salad', 'sauce'] },
+    { id: '6', name: 'Mix Kebab', price: 9.00, category: Category.KEBABS, modifierGroupIds: ['size_kebab', 'kebab_base', 'salad', 'sauce'] },
+    { id: 'wrap_chic_strips', name: 'Chicken Strips Wrap', price: 7.00, category: Category.WRAPS, modifierGroupIds: ['wrap_meal_upgrade', 'salad', 'sauce'] },
+    { id: 'wrap_doner', name: 'Doner Meat Wrap', price: 7.00, category: Category.WRAPS, modifierGroupIds: ['wrap_meal_upgrade', 'salad', 'sauce'] },
+    { id: 'wrap_chic_kebab', name: 'Chicken Kebab Wrap', price: 7.00, category: Category.WRAPS, modifierGroupIds: ['wrap_meal_upgrade', 'salad', 'sauce'] },
+    { id: 'wrap_mix', name: 'Mix Kebab Wrap', price: 7.00, category: Category.WRAPS, modifierGroupIds: ['wrap_meal_upgrade', 'salad', 'sauce'] },
+    { id: 'wrap_veggie', name: 'Veggie Wrap', price: 7.00, category: Category.WRAPS, modifierGroupIds: ['wrap_meal_upgrade', 'salad', 'sauce'] },
+    { id: 'burg_beef', name: 'Beef Burger', price: 5.50, category: Category.BURGERS, modifierGroupIds: ['size_burger', 'meal_upgrade', 'salad', 'sauce'] },
+    { id: 'burg_cheese', name: 'Cheese Burger', price: 5.50, category: Category.BURGERS, modifierGroupIds: ['size_burger', 'meal_upgrade', 'salad', 'sauce'] },
+    { id: 'burg_chicken', name: 'Chicken Burger', price: 5.50, category: Category.BURGERS, modifierGroupIds: ['size_burger', 'meal_upgrade', 'salad', 'sauce'] },
+    { id: 'burg_veggie', name: 'Veggie Burger', price: 5.50, category: Category.BURGERS, modifierGroupIds: ['size_burger', 'meal_upgrade', 'salad', 'sauce'] },
+    { id: 'burg_kebab', name: 'Kebab Burger', price: 5.50, category: Category.BURGERS, modifierGroupIds: ['kebab_burger_meat', 'size_burger', 'meal_upgrade', 'salad', 'sauce'] },
+    { id: 'kids_1', name: "Kid's 1 - Fish Cake", price: 5.50, category: Category.KIDS_MEALS, modifierGroupIds: ['meal_drinks', 'condiments'] },
+    { id: 'kids_2', name: "Kid's 2 - Cod Bites", price: 6.00, category: Category.KIDS_MEALS, modifierGroupIds: ['meal_drinks', 'condiments'] },
+    { id: 'kids_3', name: "Kid's 3 - Sausage", price: 5.50, category: Category.KIDS_MEALS, modifierGroupIds: ['kids_sausage_type', 'meal_drinks', 'condiments'] },
+    { id: 'kids_4', name: "Kid's 4 - Nuggets", price: 5.50, category: Category.KIDS_MEALS, modifierGroupIds: ['meal_drinks', 'condiments'] },
+    { id: 'kids_5', name: "Kid's 5 - Strips", price: 6.00, category: Category.KIDS_MEALS, modifierGroupIds: ['meal_drinks', 'condiments'] },
+    { id: 'kids_6', name: "Kid's 6 - Chips & Sauce", price: 5.50, category: Category.KIDS_MEALS, modifierGroupIds: ['kids_sauce_choice', 'meal_drinks', 'condiments'] },
+    { id: 'sauce_pot_main', name: 'Sauce Pot', price: 0, category: Category.SIDES, modifierGroupIds: ['sauce_pot_type'] },
+    { id: 'chic_strips', name: 'Chicken Strips (5 pcs)', price: 6.00, category: Category.SIDES, modifierGroupIds: ['side_add_chips', 'sauce'] },
+    { id: 'chic_nuggets', name: 'Chicken Nuggets (6 pcs)', price: 3.00, category: Category.SIDES, modifierGroupIds: ['side_add_chips', 'sauce'] },
+    { id: 'spicy_wings', name: 'Spicy Wings (6 pcs)', price: 5.00, category: Category.SIDES, modifierGroupIds: ['side_add_chips', 'sauce'] },
+    { id: 'chic_breast', name: 'Chicken Breast', price: 5.00, category: Category.SIDES, modifierGroupIds: ['chicken_breast_chips'] },
+    { id: 'chic_curry_meal', name: 'Chicken Curry', price: 10.00, category: Category.SIDES, modifierGroupIds: ['chicken_curry_style'] },
+    { id: 'cheese_sticks', name: 'Breaded Cheese Sticks (6)', price: 5.00, category: Category.SIDES, modifierGroupIds: ['side_add_chips', 'sauce'] },
+    { id: 'jalapeno_cream', name: 'Jalapeno Cream Cheese (6)', price: 5.00, category: Category.SIDES, modifierGroupIds: ['side_add_chips', 'sauce'] },
+    { id: '14_bread_roll', name: 'Bread Roll', price: 1.00, category: Category.SIDES, modifierGroupIds: [] },
+    { id: 'drink_can', name: 'Can (330ml)', price: 1.50, category: Category.DRINKS, modifierGroupIds: ['drink_can_opt'] },
+    { id: 'drink_bottle', name: 'Bottle (500ml)', price: 2.00, category: Category.DRINKS, modifierGroupIds: ['drink_bottle_opt'] },
+    { id: 'drink_water', name: 'Water (500ml)', price: 1.50, category: Category.DRINKS, modifierGroupIds: [] },
+    { id: 'drink_juice', name: 'Juice', price: 1.50, category: Category.DRINKS, modifierGroupIds: ['drink_juice_opt'] },
+    { id: 'drink_fruitshoot', name: 'Fruit Shoot', price: 1.00, category: Category.DRINKS, modifierGroupIds: ['drink_fruitshoot_opt'] }
+];
+
+let cart = [];
+let currentCategory = Category.CHIPS;
+let pendingItemStates = {}; 
+let isHistoryView = false;
+let fmItem = null, fmModifiers = {}, fmQty = 1, fmActiveGroupIndex = 0;
+let currentOrderType = 'TAKEAWAY';
+let isDeliveryValid = false;
+
+const KEY_NEXT_ORDER_ID = 'pos_next_order_id';
+const KEY_ORDER_HISTORY = 'pos_order_history';
+const formatMoney = (amount) => CURRENCY + amount.toFixed(2);
+const getGroupById = (id) => MODIFIER_GROUPS.find(g => g.id === id);
+
+// [INIT & RENDER FUNCTIONS]
+function init() { isHistoryView = false; renderCategories(); renderMenu(); renderCart(); }
+function renderCategories() { const container = document.getElementById('categoryList'); container.innerHTML = ''; document.getElementById('btnHistory').className = `cat-btn history-btn ${isHistoryView ? 'active' : ''}`; if(isHistoryView) return; CategoryOrder.forEach(cat => { const btn = document.createElement('button'); btn.className = `cat-btn ${currentCategory === cat ? 'active' : ''}`; btn.innerText = cat; btn.onclick = () => { currentCategory = cat; renderCategories(); renderMenu(); }; container.appendChild(btn); }); }
+function renderMenu() { const container = document.getElementById('mainContent'); container.innerHTML = ''; container.className = "content-area menu-grid"; const items = MENU_ITEMS.filter(item => item.category === currentCategory); items.forEach(item => { if (!pendingItemStates[item.id]) pendingItemStates[item.id] = { modifiers: {} }; container.appendChild(createItemCard(item)); }); }
+
+function createItemCard(item) {
+    const state = pendingItemStates[item.id];
+    const card = document.createElement('div');
+    card.className = 'dashboard-card';
+    card.innerHTML = `
+        <div class="card-header"><div class="card-title">${item.name}</div><div class="card-base-price">${formatMoney(item.price)} Base</div></div>
+        <div class="card-customize-icon" onclick="event.stopPropagation(); openFullModalById('${item.id}')">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </div>
+    `;
+    
+    const activeGroups = getActiveGroupsForItem(item, state.modifiers);
+    
+    // PROGRESSIVE LOGIC: Show group ONLY if first, or if previous group has selection
+    let stopRendering = false;
+
+    activeGroups.forEach((group, index) => {
+        if(stopRendering) return;
+
+        // Check if previous group has selection
+        if(index > 0) {
+            const prevGroup = activeGroups[index - 1];
+            const prevSelection = state.modifiers[prevGroup.id];
+            if (!prevSelection || prevSelection.length === 0) {
+                stopRendering = true;
+                return;
+            }
+        }
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'card-mod-group';
+        groupDiv.innerHTML = `<div class="card-mod-title">${group.name}</div>`;
+        const row = document.createElement('div');
+        row.className = 'card-options-row';
+        group.options.forEach(opt => {
+            const btn = document.createElement('div');
+            const isSelected = state.modifiers[group.id]?.some(sel => sel.name === opt.name);
+            btn.className = `card-opt-btn ${isSelected ? 'selected' : ''}`;
+            let priceText = opt.price > 0 ? ` +${opt.price.toFixed(2)}` : '';
+            btn.innerText = opt.name + priceText;
+            btn.onclick = () => handleCardSelection(item, group, opt, !isSelected);
+            row.appendChild(btn);
+        });
+        groupDiv.appendChild(row);
+        card.appendChild(groupDiv);
+    });
+
+    let total = item.price;
+    Object.values(state.modifiers).flat().forEach(m => total += m.price);
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    actions.innerHTML = `<button class="btn-add-card" onclick="addItemToCart('${item.id}')"><span>Add</span><span>${formatMoney(total)}</span></button>`;
+    card.appendChild(actions);
+    return card;
+}
+
+function openFullModalById(itemId) {
+    const item = MENU_ITEMS.find(i => i.id === itemId);
+    if(item) openFullModal(item);
+}
+
+function getActiveGroupsForItem(item, currentModifiers) {
+    let activeGroupIds = [...item.modifierGroupIds];
+    let processedGroupIds = new Set();
+    let changed = true;
+    while(changed) {
+        changed = false;
+        for (let i = 0; i < activeGroupIds.length; i++) {
+            const groupId = activeGroupIds[i];
+            if (processedGroupIds.has(groupId)) continue;
+            const selection = currentModifiers[groupId];
+            if (selection && selection.length > 0) {
+                selection.forEach(opt => {
+                    let triggers = [];
+                    if (opt.triggersGroupId) triggers.push(opt.triggersGroupId);
+                    if (opt.triggersGroupIds) triggers = [...triggers, ...opt.triggersGroupIds];
+                    triggers.forEach(tId => { if (!activeGroupIds.includes(tId)) { activeGroupIds.push(tId); changed = true; } });
+                });
+            }
+            processedGroupIds.add(groupId);
+        }
+    }
+    return activeGroupIds.map(id => getGroupById(id)).filter(g => g !== undefined);
+}
+
+function handleCardSelection(item, group, option, isSelected) {
+    const state = pendingItemStates[item.id];
+    if (!state.modifiers[group.id]) state.modifiers[group.id] = [];
+    if (group.allowMultiple) {
+        if (isSelected) {
+            if (group.maxSelection && state.modifiers[group.id].length >= group.maxSelection) state.modifiers[group.id].shift();
+            state.modifiers[group.id].push(option);
+        } else {
+            state.modifiers[group.id] = state.modifiers[group.id].filter(o => o.name !== option.name);
+        }
+    } else {
+        if (isSelected) state.modifiers[group.id] = [option];
+    }
+    renderMenu();
+}
+
+function addItemToCart(itemId) {
+    const item = MENU_ITEMS.find(i => i.id === itemId);
+    const state = pendingItemStates[itemId];
+    let finalPrice = item.price;
+    let modList = [];
+    Object.entries(state.modifiers).forEach(([groupId, options]) => {
+        options.forEach(opt => { finalPrice += opt.price; modList.push({ name: opt.name, price: opt.price, groupId: groupId }); });
+    });
+    const uniqueId = Date.now() + '-' + Math.floor(Math.random() * 1000);
+    cart.push({ ...item, cartId: uniqueId, finalPrice: finalPrice, selectedModifiers: modList, quantity: 1 });
+    renderCart();
+}
+
+function renderCart() {
+    const container = document.getElementById('cartItems');
+    container.innerHTML = '';
+    let total = 0;
+    const displayCart = [...cart].sort((a, b) => CategoryOrder.indexOf(a.category) - CategoryOrder.indexOf(b.category));
+    let currentCatGroup = null, groupDiv = null;
+    displayCart.forEach((item) => {
+        total += (item.finalPrice * item.quantity);
+        if (item.category !== currentCatGroup) {
+            currentCatGroup = item.category;
+            if (groupDiv) container.appendChild(groupDiv);
+            groupDiv = document.createElement('div');
+            groupDiv.className = 'cart-group';
+            const header = document.createElement('div');
+            header.className = 'cart-group-header';
+            header.innerText = currentCatGroup;
+            groupDiv.appendChild(header);
+        }
+        const modNames = item.selectedModifiers.map(m => m.name).join(', ');
+        const div = document.createElement('div');
+        div.className = 'cart-item';
+        div.innerHTML = `
+            <div class="cart-row-top"><div class="cart-name">${item.name}</div><div class="cart-price">${formatMoney(item.finalPrice * item.quantity)}</div></div>
+            <div class="cart-mods">${modNames}</div>
+            <div class="cart-actions">
+                <button class="qty-btn" onclick="adjustQty('${item.cartId}', -1)">-</button><div class="qty-val">${item.quantity}</div><button class="qty-btn" onclick="adjustQty('${item.cartId}', 1)">+</button><span class="clear-cart" style="margin-left:5px" onclick="removeFromCart('${item.cartId}')">✕</span>
+            </div>
+        `;
+        groupDiv.appendChild(div);
+    });
+    if (groupDiv) container.appendChild(groupDiv);
+    document.getElementById('cartTotal').innerText = formatMoney(total);
+}
+
+function adjustQty(cartId, delta) { const item = cart.find(i => i.cartId === cartId); if (item) { item.quantity += delta; if (item.quantity <= 0) { removeFromCart(cartId); } else { renderCart(); } } }
+function removeFromCart(cartId) { const index = cart.findIndex(i => i.cartId === cartId); if (index > -1) { cart.splice(index, 1); renderCart(); } }
+function clearCart() { cart = []; renderCart(); }
+
+function setOrderType(type) {
+    currentOrderType = type;
+    document.getElementById('btnTakeaway').className = type === 'TAKEAWAY' ? 'type-btn active' : 'type-btn';
+    document.getElementById('btnDelivery').className = type === 'DELIVERY' ? 'type-btn active' : 'type-btn';
+    document.getElementById('deliveryForm').className = type === 'DELIVERY' ? 'delivery-form visible' : 'delivery-form';
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 3958.8; // Radius of Earth in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+async function lookupPostcode() {
+    const pcInput = document.getElementById('dfPostcode');
+    const addrInput = document.getElementById('dfAddress');
+    const msgDiv = document.getElementById('dfMessage');
+    const pc = pcInput.value.trim().toUpperCase();
+    
+    if(pc.length < 5) { alert("Invalid Postcode"); return; }
+    
+    addrInput.value = "Searching...";
+    msgDiv.style.display = 'none';
+    msgDiv.className = 'df-msg';
+    isDeliveryValid = false;
+
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${pc},+UK&addressdetails=1`);
+        const data = await response.json();
+        if (data && data.length > 0) {
+            const result = data[0];
+            const dist = calculateDistance(SHOP_LAT, SHOP_LNG, parseFloat(result.lat), parseFloat(result.lon));
+            
+            if (dist > MAX_DELIVERY_MILES) {
+                addrInput.value = "";
+                msgDiv.innerText = `Too Far! Distance: ${dist.toFixed(1)} miles. Max is ${MAX_DELIVERY_MILES} miles.`;
+                msgDiv.className = 'df-msg error';
+                isDeliveryValid = false;
+            } else {
+                const r = result.address;
+                const parts = [];
+                if(r.road) parts.push(r.road);
+                if(r.town) parts.push(r.town);
+                else if(r.city) parts.push(r.city);
+                
+                addrInput.value = parts.join(', ');
+                msgDiv.innerText = `Within range! (${dist.toFixed(1)} miles away)`;
+                msgDiv.className = 'df-msg success';
+                isDeliveryValid = true;
+            }
+        } else {
+            addrInput.value = "";
+            alert("Postcode not found.");
+        }
+    } catch (e) {
+        console.error(e);
+        addrInput.value = "";
+        alert("Lookup failed. Check internet.");
+    }
+}
+
+function openFullModal(item) {
+    fmItem = item;
+    const existingState = pendingItemStates[item.id]?.modifiers || {};
+    fmModifiers = JSON.parse(JSON.stringify(existingState));
+    fmQty = 1;
+    fmActiveGroupIndex = 0;
+    document.getElementById('fmTitle').innerText = item.name;
+    document.getElementById('fmCategory').innerText = item.category;
+    document.getElementById('fmBasePrice').innerText = `${formatMoney(item.price)} Base`;
+    renderFullModal();
+    document.getElementById('fullModal').style.display = 'flex';
+}
+function closeFullModal() { document.getElementById('fullModal').style.display = 'none'; fmItem = null; }
+
+function renderFullModal() {
+    const activeGroups = getActiveGroupsForItem(fmItem, fmModifiers);
+    const tabsContainer = document.getElementById('fmTabs');
+    tabsContainer.innerHTML = '';
+    activeGroups.forEach((group, index) => {
+        const tab = document.createElement('div');
+        tab.className = `fm-tab ${index === fmActiveGroupIndex ? 'active' : ''}`;
+        tab.innerText = group.name + (fmModifiers[group.id]?.length ? " ✓" : "");
+        tab.onclick = () => { fmActiveGroupIndex = index; renderFullModal(); };
+        tabsContainer.appendChild(tab);
+    });
+    const bodyContainer = document.getElementById('fmBody');
+    bodyContainer.innerHTML = '';
+    if (activeGroups.length > 0) {
+        const currentGroup = activeGroups[fmActiveGroupIndex];
+        const sectionTitle = document.createElement('div');
+        sectionTitle.className = 'fm-section-title';
+        sectionTitle.innerText = currentGroup.name;
+        const sectionSubtitle = document.createElement('div');
+        sectionSubtitle.className = 'fm-section-subtitle';
+        sectionSubtitle.innerHTML = `${currentGroup.allowMultiple ? `Select multiple` : "Select one"} <span class="fm-tag" style="margin-left:10px">${currentGroup.allowMultiple ? "MULTIPLE" : "SINGLE"}</span>`;
+        bodyContainer.appendChild(sectionTitle);
+        bodyContainer.appendChild(sectionSubtitle);
+        const grid = document.createElement('div');
+        grid.className = 'fm-grid';
+        currentGroup.options.forEach(opt => {
+            const card = document.createElement('div');
+            const isSelected = fmModifiers[currentGroup.id]?.some(sel => sel.name === opt.name);
+            card.className = `fm-option-card ${isSelected ? 'selected' : ''}`;
+            let priceText = opt.price === 0 ? "FREE" : `+${formatMoney(opt.price)}`;
+            card.innerHTML = `<div class="fm-opt-info"><div class="fm-opt-name">${opt.name}</div><div class="fm-opt-price">${priceText}</div></div><div class="fm-check-circle"><span class="fm-check-icon">✔</span></div>`;
+            card.onclick = () => { handleFmSelection(currentGroup, opt, !isSelected); };
+            grid.appendChild(card);
+        });
+        bodyContainer.appendChild(grid);
+    } else { bodyContainer.innerHTML = "<div style='color:white'>No options available.</div>"; }
+    updateFmFooter();
+}
+
+function handleFmSelection(group, option, isSelected) {
+    if (!fmModifiers[group.id]) fmModifiers[group.id] = [];
+    if (group.allowMultiple) {
+        if (isSelected) {
+            if (group.maxSelection && fmModifiers[group.id].length >= group.maxSelection) fmModifiers[group.id].shift();
+            fmModifiers[group.id].push(option);
+        } else {
+            fmModifiers[group.id] = fmModifiers[group.id].filter(o => o.name !== option.name);
+        }
+    } else {
+        if (isSelected) fmModifiers[group.id] = [option];
+    }
+    renderFullModal();
+}
+
+function updateFmQty(delta) { fmQty += delta; if(fmQty < 1) fmQty = 1; document.getElementById('fmQty').innerText = fmQty; updateFmFooter(); }
+function updateFmFooter() {
+    let unitTotal = fmItem.price;
+    Object.values(fmModifiers).flat().forEach(m => unitTotal += m.price);
+    document.getElementById('fmTotalPrice').innerText = formatMoney(unitTotal * fmQty);
+}
+
+function addFmToOrder() {
+    let unitTotal = fmItem.price;
+    let modList = [];
+    Object.entries(fmModifiers).forEach(([groupId, options]) => {
+        options.forEach(opt => { unitTotal += opt.price; modList.push({ name: opt.name, price: opt.price, groupId: groupId }); });
+    });
+    const uniqueId = Date.now() + '-' + Math.floor(Math.random() * 1000);
+    cart.push({ ...fmItem, cartId: uniqueId, finalPrice: unitTotal, selectedModifiers: modList, quantity: fmQty });
+    pendingItemStates[fmItem.id] = { modifiers: JSON.parse(JSON.stringify(fmModifiers)) };
+    renderMenu();
+    renderCart();
+    closeFullModal();
+}
+
+function getNextOrderId() { return parseInt(localStorage.getItem(KEY_NEXT_ORDER_ID) || '1'); }
+function incrementOrderId() { const cur = getNextOrderId(); localStorage.setItem(KEY_NEXT_ORDER_ID, cur + 1); return cur; }
+function getOrderHistory() { return JSON.parse(localStorage.getItem(KEY_ORDER_HISTORY) || '[]'); }
+
+function showHistory() {
+    const container = document.getElementById('mainContent');
+    container.className = "content-area";
+    const history = getOrderHistory();
+    let historyHtml = history.length === 0 ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#64748b">No orders.</td></tr>' : history.map(o => `<tr><td>#${o.id}</td><td>${o.dateStr}</td><td>${o.items.length}</td><td>${formatMoney(o.total)}</td><td><button class="btn-reprint" onclick="reprintOrderById(${o.id})">Reprint</button></td></tr>`).join('');
+    container.innerHTML = `<div class="history-header"><h3>Today's Orders</h3><div style="display:flex; gap:10px"><button class="btn-close-day" onclick="processEndDay()">🛑 Close Register</button><button style="background:#334155;color:white;padding:10px;border:none;border-radius:6px" onclick="init()">← Back</button></div></div><table class="history-table"><thead><tr><th>ID</th><th>Date</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody>${historyHtml}</tbody></table>`;
+}
+
+function reprintOrderById(id) { 
+    const history = getOrderHistory();
+    const order = history.find(o => o.id === id); 
+    if(order) {
+        const html = generateReceiptHTMLContent(order);
+        const paper = document.getElementById('rpPaper');
+        paper.innerHTML = html;
+        document.getElementById('receiptPreviewModal').style.display = 'flex';
+    }
+}
+
+function processEndDay() { if(!confirm("Close Register?")) return; localStorage.setItem(KEY_NEXT_ORDER_ID, 1); localStorage.removeItem(KEY_ORDER_HISTORY); alert("Closed."); init(); }
+
+// Receipt Width Handling
+function setReceiptWidth(width) {
+    const paper = document.getElementById('rpPaper');
+    const btn58 = document.getElementById('btn58');
+    const btn80 = document.getElementById('btn80');
+    paper.classList.remove('width-58', 'width-80');
+    if (width === '58mm') { paper.classList.add('width-58'); btn58.classList.add('active'); btn80.classList.remove('active'); } 
+    else { paper.classList.add('width-80'); btn80.classList.add('active'); btn58.classList.remove('active'); }
+}
+function closeReceiptPreview() { document.getElementById('receiptPreviewModal').style.display = 'none'; }
+function printReceiptNow() { window.print(); closeReceiptPreview(); }
+
+function processCheckout() {
+    if (cart.length === 0) { alert("Cart is empty"); return; }
+    
+    const cust = { phone: '', address: '', postcode: '' };
+    if (currentOrderType === 'DELIVERY') {
+        if(!isDeliveryValid) { alert("Please validate postcode first."); return; }
+        cust.phone = document.getElementById('dfPhone').value;
+        const door = document.getElementById('dfDoor').value;
+        const addr = document.getElementById('dfAddress').value;
+        const pc = document.getElementById('dfPostcode').value;
+        if (!cust.phone || !door || !addr || !pc) { alert("Fill all Delivery fields."); return; }
+        cust.address = `${door}, ${addr}, ${pc}`;
+        cust.postcode = pc;
+    }
+
+    const orderId = incrementOrderId(); 
+    const now = new Date();
+    const dateStr = now.toLocaleDateString() + ', ' + now.toLocaleTimeString();
+    let total = cart.reduce((sum, item) => sum + (item.finalPrice * item.quantity), 0);
+    const sortedItems = [...cart].sort((a, b) => CategoryOrder.indexOf(a.category) - CategoryOrder.indexOf(b.category));
+    const order = { id: orderId, dateStr: dateStr, items: sortedItems, total: total, type: currentOrderType, customer: cust };
+    
+    const history = getOrderHistory(); 
+    history.unshift(order); 
+    localStorage.setItem(KEY_ORDER_HISTORY, JSON.stringify(history));
+    
+    const html = generateReceiptHTMLContent(order);
+    const paper = document.getElementById('rpPaper');
+    paper.innerHTML = html;
+    document.getElementById('receiptPreviewModal').style.display = 'flex';
+    setReceiptWidth('80mm');
+    
+    clearCart();
+}
+
+function generateReceiptHTMLContent(order) {
+    let groupedHtml = '';
+    let currentCat = null;
+    const INLINE_GROUPS = ['size_fish', 'size_kebab', 'size_chips', 'size_burger', 'size_side', 'size_sausage_plain', 'size_sausage_battered', 'cod_bites_size', 'fish_chip_opt_med', 'fish_chip_opt_lrg', 'chips_cod_bites', 'chips_fish_cake', 'pie_chips_opt', 'opt_chips_sausage_small', 'opt_chips_sausage_large', 'opt_chips_battered_small', 'opt_chips_battered_large', 'opt_chips_saveloy', 'side_add_chips', 'chicken_breast_chips', 'kebab_base', 'meal_upgrade', 'wrap_meal_upgrade', 'chicken_curry_style', 'drink_can_opt', 'drink_bottle_opt', 'drink_juice_opt', 'drink_fruitshoot_opt', 'kids_drink_select', 'kids_sausage_type', 'kids_sauce_choice', 'chip_combo_selection', 'size_combo_ml'];
+
+    order.items.forEach(item => {
+        if (item.category !== currentCat) { currentCat = item.category; groupedHtml += `<div class="r-cat-header">${currentCat}</div>`; }
+        let inlineMods = [], blockMods = {};
+        item.selectedModifiers.forEach(mod => {
+            if (INLINE_GROUPS.includes(mod.groupId)) inlineMods.push(mod.name);
+            else { if (!blockMods[mod.groupId]) blockMods[mod.groupId] = []; blockMods[mod.groupId].push(mod.name); }
+        });
+        let titleText = `${item.quantity > 1 ? item.quantity + ' x ' : '1 x '}${item.name}`;
+        if (inlineMods.length > 0) titleText += ` (${inlineMods.join(') (')})`;
+        let subLinesHtml = '';
+        Object.values(blockMods).forEach(modList => { if (modList.length > 0) subLinesHtml += `<div class="r-mods">(${modList.join(', ')})</div>`; });
+        groupedHtml += `<div class="r-item-row"><div class="r-item-name">${titleText}</div><div class="r-item-price">${formatMoney(item.finalPrice * item.quantity)}</div></div>${subLinesHtml}`;
+    });
+
+    let customerHtml = '';
+    if (order.type === 'DELIVERY' && order.customer) {
+        customerHtml = `<div class="r-dashed-line"></div><div class="r-ord-label">DELIVERY DETAILS</div><div class="r-customer" style="font-size:1.1em;font-weight:bold;margin-top:5px;text-align:center">${order.customer.phone}<br>${order.customer.address}</div>`;
+    }
+
+    return `
+        <div class="r-header"><div class="r-brand">HUNGRY SHARK</div><div class="r-loc">BARRY ISLAND</div></div>
+        <div class="r-dashed-line"></div><div class="r-ord-label">ORDER NUMBER</div><div class="r-ord-num">${order.id}</div><div class="r-type">${order.type}</div>${customerHtml}<div class="r-dashed-line"></div>
+        ${groupedHtml}
+        <div class="r-solid-line"></div><div class="r-total-section"><div class="r-total-row"><span class="r-total-label">TOTAL</span><span class="r-total-amount">${formatMoney(order.total)}</span></div><div class="r-payment-row"><span>PAID BY CARD</span><span>TEND: ${formatMoney(order.total)}</span></div></div>
+        <div class="r-footer"><div>${order.dateStr}</div></div><div class="r-solid-line"></div><div class="r-thankyou">THANK YOU!</div>
+    `;
+}
+</script>
+</body>
+</html>
